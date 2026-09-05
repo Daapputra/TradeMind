@@ -1,69 +1,145 @@
-import Image from "next/image";
-
+"use client";
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { supabase } from "@/lib/supabase";
 export default function Home() {
+  const [tanggal, setTanggal] = useState("");
+  const [pair, setPair] = useState("");
+  const [setup, setSetup] = useState("");
+  const [emosi, setEmosi] = useState("");
+  const [hasil, setHasil] = useState("");
+  const [catatan, setCatatan] = useState("");
+  const [riwayat, setRiwayat] = useState<any[]>([]);
+
+  async function simpanData() {
+    // memasukan data ke tabel 'jurnal'
+    const { error } = await supabase
+      .from("jurnal")
+      .insert([
+        {
+          tanggal: tanggal,
+          pair: pair,
+          setup: setup,
+          emosi: emosi,
+          hasil: hasil,
+          catatan: catatan
+        }
+      ]);
+
+    // apakah data nya berhasil dimasukan atau tidak
+    if (error) {
+      alert("Gagal Menyimpan Data" + error.message);
+      console.log(error);
+    } else {
+      alert("Jurnal Berhasil Disimpan");
+    }
+  }
+
+  async function ambilData() {
+    // meminta semua data dari tabel jurnal
+    const { data } = await supabase.from("jurnal").select("*");
+
+    // jika datanya didapat, masuk ke memori 'riwayat'
+    if (data) {
+      setRiwayat(data);
+    }
+  }
+
+  // otomatis agar ambilData() langsung jalan saat web dibuka
+  useEffect(() => {
+    ambilData();
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-8">Jurnal Trading</h1>
+      {/* pembelah layar */}
+      <div className="flex gap-12">
+        {/* kolom kiri */}
+        <div className="flec flex-col gap-4 w-[400px]">
+          <Input type="date" placeholder="Tanggal"
+            value={tanggal}
+            onChange={(e) => setTanggal(e.target.value)} />
+
+          <Input placeholder="Pair Trading (misal: XAUUSD)"
+            value={pair}
+            onChange={(e) => setPair(e.target.value)} />
+
+          <Select value={setup} onValueChange={(value) => setSetup(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih Setup..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Support and Resistance">Support and Resistance</SelectItem>
+              <SelectItem value="Supply and Demand">Supply and Demand</SelectItem>
+              <SelectItem value="Far Value Gap">Far value Gap</SelectItem>
+              <SelectItem value="Retest">Retest</SelectItem>
+              <SelectItem value="Order Block">Order Block</SelectItem>
+              <SelectItem value="Key Levels">Key levels</SelectItem>
+              <SelectItem value="Liquidity">Liquidity</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={emosi} onValueChange={(value) => setEmosi(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih emosi saat entry..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Tenang">Tenang</SelectItem>
+              <SelectItem value="FOMO">Fears Of Missing Out</SelectItem>
+              <SelectItem value="Ragu-ragu">Ragu-ragu</SelectItem>
+              <SelectItem value="Revenge">Revenge</SelectItem>
+              <SelectItem value="Overconfidence">Overconfindence</SelectItem>
+              <SelectItem value="Serakah">Serakah</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Input
+            placeholder="Hasil (misal: +100 pips atau -50 pips)"
+            value={hasil}
+            onChange={(e) => setHasil(e.target.value)} />
+
+          <Textarea placeholder="Catatan trading (misal: Sesuai plan, tapi agak ragu pas mau entry"
+            value={catatan}
+            onChange={(e) => setCatatan(e.target.value)} />
+          <Button onClick={simpanData}>Simpan Jurnal</Button>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* kolom kanan */}
+        <div className="flex-1 border rounded-lg p-6 bg-slate-50">
+          <h2 className="font-semibold mb-4">Riwayat Trading</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tanggal</TableHead>
+                <TableHead>Pair</TableHead>
+                <TableHead>Setup</TableHead>
+                <TableHead>Emosi</TableHead>
+                <TableHead>Hasil</TableHead>
+                <TableHead>Catatan</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {riwayat.map((data, index) => (
+                <TableRow key={index}>
+                  <TableCell>{data.tanggal}</TableCell>
+                  <TableCell>{data.pair}</TableCell>
+                  <TableCell>{data.setup}</TableCell>
+                  <TableCell>{data.emosi}</TableCell>
+                  <TableCell>{data.hasil}</TableCell>
+                  <TableCell>{data.catatan}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      </main>
+
+      </div>
     </div>
   );
 }
