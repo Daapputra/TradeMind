@@ -1,6 +1,6 @@
 # Jurnal Trading
 
-Aplikasi web sederhana untuk mencatat dan melacak performa trading. Dibuat buat mempermudah evaluasi setup, emosi, dan hasil (win rate & net pips) dari setiap trade.
+Aplikasi web untuk mencatat dan melacak performa trading. Dibuat buat mempermudah evaluasi setup, emosi, dan hasil (win rate & net pips) dari setiap trade.
 
 ## Fitur
 
