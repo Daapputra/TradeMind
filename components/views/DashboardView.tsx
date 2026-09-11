@@ -19,7 +19,7 @@ export function DashboardView({ riwayat, loading }: { riwayat: any[], loading?: 
   };
 
   const batasTanggal = getFilterDate(timeFilter);
-  
+
   // Data riwayat yang sudah disaring berdasarkan waktu
   const riwayatTersaring = riwayat.filter(data => {
     if (!batasTanggal) return true;
@@ -85,20 +85,52 @@ export function DashboardView({ riwayat, loading }: { riwayat: any[], loading?: 
   const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? "MAX" : "0.00") : (grossProfit / grossLoss).toFixed(2);
   const avgRR = totalTrade > 0 ? (totalRR / totalTrade).toFixed(2) : "0.00";
 
+  // menghitung statistik per pair //
+  const pairStats: Record<string, { tradeCount: number, winCount: number, netPips: number }> = {};
+
+  riwayatTersaring.forEach(data => {
+    const p = data.pair || "Lainnya";
+    const pips = Number(data.hasil_pips) || 0;
+
+    if (!pairStats[p]) {
+      pairStats[p] = { tradeCount: 0, winCount: 0, netPips: 0 };
+    }
+
+    pairStats[p].tradeCount += 1;
+
+    if (data.status === "PROFIT") {
+      pairStats[p].winCount += 1;
+      pairStats[p].netPips += pips;
+    } else if (data.status === "LOSS") {
+      pairStats[p].netPips -= pips;
+    }
+  });
+
+  // ubah data object jadi Array, lalu urutkan dari profit terbesar ke terkecil
+  const pairBreakdown = Object.keys(pairStats).map(pair => {
+    const stats = pairStats[pair];
+    return {
+      pair,
+      tradeCount: stats.tradeCount,
+      winRate: ((stats.winCount / stats.tradeCount) * 100).toFixed(1),
+      netPips: stats.netPips
+    };
+  }).sort((a, b) => b.netPips - a.netPips);
+
+
   return (
     <div className={`w-full transition-opacity duration-200 ${loading ? "opacity-60" : "opacity-100"}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
-        
+
         {/* FILTER PERIODE WAKTU (Mempengaruhi KPI dan Grafik) */}
         <div className="flex bg-white border rounded-md p-1 shadow-sm overflow-x-auto">
           {["7D", "30D", "3M", "6M", "1Y", "ALL"].map((filter) => (
             <button
               key={filter}
               onClick={() => setTimeFilter(filter)}
-              className={`px-3 py-1 text-xs font-semibold rounded-sm transition-colors ${
-                timeFilter === filter ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-800"
-              }`}
+              className={`px-3 py-1 text-xs font-semibold rounded-sm transition-colors ${timeFilter === filter ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-800"
+                }`}
             >
               {filter}
             </button>
@@ -151,16 +183,15 @@ export function DashboardView({ riwayat, loading }: { riwayat: any[], loading?: 
             <h3 className="text-slate-800 font-bold text-lg">Performance Chart</h3>
             <p className="text-xs text-slate-500">Perkembangan hasil trading berdasarkan tipe grafik</p>
           </div>
-          
+
           {/* TABS TIPE GRAFIK */}
           <div className="flex bg-slate-100 p-1 rounded-md">
             {["Equity", "Pips", "P/L", "Drawdown"].map((type) => (
               <button
                 key={type}
                 onClick={() => setChartType(type)}
-                className={`px-4 py-1.5 text-sm font-medium rounded-sm transition-all ${
-                  chartType === type ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`px-4 py-1.5 text-sm font-medium rounded-sm transition-all ${chartType === type ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                  }`}
               >
                 {type}
               </button>
@@ -177,8 +208,8 @@ export function DashboardView({ riwayat, loading }: { riwayat: any[], loading?: 
                 <XAxis dataKey="nama" tick={{ fontSize: 12 }} tickMargin={10} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip cursor={{ fill: 'transparent' }} />
-                <Bar 
-                  dataKey="pl" 
+                <Bar
+                  dataKey="pl"
                   radius={[4, 4, 0, 0]}
                 >
                   {
@@ -215,6 +246,41 @@ export function DashboardView({ riwayat, loading }: { riwayat: any[], loading?: 
               </LineChart>
             )}
           </ResponsiveContainer>
+        </div>
+      </div>
+      {/* PERFORMANCE BREAKDOWN BY PAIR */}
+      <div className="border rounded-lg p-6 bg-white shadow-sm mb-8">
+        <h3 className="text-slate-800 font-bold text-lg mb-1">Analisa Pair Trading</h3>
+        <p className="text-xs text-slate-500 mb-6">Melihat performa win rate dan profit/loss berdasarkan setiap pair</p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b">
+                <th className="p-3 font-semibold text-slate-600">Pair</th>
+                <th className="p-3 font-semibold text-slate-600 text-center">Total Trade</th>
+                <th className="p-3 font-semibold text-slate-600 text-center">Win Rate</th>
+                <th className="p-3 font-semibold text-slate-600 text-right">Net Pips</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pairBreakdown.map((item, idx) => (
+                <tr key={idx} className="border-b hover:bg-slate-50 transition-colors">
+                  <td className="p-3 font-bold text-slate-800">{item.pair}</td>
+                  <td className="p-3 text-center text-slate-600">{item.tradeCount}</td>
+                  <td className="p-3 text-center text-slate-600">{item.winRate}%</td>
+                  <td className={`p-3 text-right font-bold ${item.netPips >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {item.netPips > 0 ? "+" + item.netPips : item.netPips}
+                  </td>
+                </tr>
+              ))}
+              {pairBreakdown.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-6 text-center text-slate-500">Belum ada data trading pada periode ini.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
